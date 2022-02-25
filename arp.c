@@ -198,10 +198,10 @@ arp_request(struct net_iface *iface, ip_addr_t tpa)
     request.hdr.hln = ETHER_ADDR_LEN;
     request.hdr.pln = IP_ADDR_LEN;
     request.hdr.op = hton16(ARP_OP_REQUEST);
-    memcpy(request.sha, iface->dev->addr, sizeof(request.sha));
-    memcpy(request.spa, &((struct ip_iface *)iface)->unicast, sizeof(request.spa));
-    // request.tha は未設定
-    memcpy(request.tpa, &tpa, sizeof(request.tpa));
+    memcpy(request.sha, iface->dev->addr, ETHER_ADDR_LEN);
+    memcpy(request.spa, &((struct ip_iface *)iface)->unicast, IP_ADDR_LEN);
+    memset(request.tha, 0, ETHER_ADDR_LEN); // thaをリクエストするので、仮の値0を設定
+    memcpy(request.tpa, &tpa, IP_ADDR_LEN);
 
     debugf("dev=%s, len=%zu", iface->dev->name, sizeof(request));
     arp_dump((uint8_t *)&request, sizeof(request));
@@ -304,6 +304,8 @@ arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
         debugf("cache not found, pa=%s", ip_addr_ntop(pa, addr1, sizeof(addr1)));
         cache = arp_cache_alloc();
         if (!cache) {
+            mutex_unlock(&mutex);
+            errorf("arp_cache_alloc() failure");
             return ARP_RESOLVE_ERROR;
         }
         cache->state = ARP_RESOLVE_INCOMPLETE;
