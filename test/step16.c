@@ -8,7 +8,6 @@
 #include "util.h"
 #include "net.h"
 #include "ip.h"
-#include "icmp.h"
 
 #include "driver/loopback.h"
 #include "driver/ether_tap.h"

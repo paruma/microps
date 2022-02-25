@@ -93,7 +93,6 @@ intr_thread(void *arg)
 {
     const struct timespec ts = {0, 1000000}; /* 1ms */
     struct itimerspec interval = {ts, ts};
-
     int terminate = 0, sig, err;
     struct irq_entry *entry;
     debugf("start...");
@@ -103,7 +102,6 @@ intr_thread(void *arg)
         errorf("intr_timer_setup() failure");
         return NULL;
     }
-
     while (!terminate) {
         err = sigwait(&sigmask, &sig); // シグナル番号を取得(このシグナル番号を割り込み番号として扱う)
         if (err) {

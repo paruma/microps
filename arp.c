@@ -357,7 +357,7 @@ arp_init(void)
         errorf("net_protocol_register() failure");
         return -1;
     }
-    if (net_timer_register(interval, arp_timer_handler)) {
+    if (net_timer_register(interval, arp_timer_handler) == -1) {
         errorf("net_timer_register() failure");
         return -1;
     }
