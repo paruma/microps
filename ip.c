@@ -126,6 +126,10 @@ ip_route_add(ip_addr_t network, ip_addr_t netmask, ip_addr_t nexthop, struct ip_
     char addr4[IP_ADDR_STR_LEN];
 
     route = memory_alloc(sizeof(*route));
+    if (!route) {
+        errorf("memory_alloc() failure");
+        return NULL;
+    }
     route->network = network;
     route->netmask = netmask;
     route->nexthop = nexthop;
@@ -160,6 +164,7 @@ int
 ip_route_set_default_gateway(struct ip_iface *iface, const char *gateway)
 {
     ip_addr_t gw;
+    
     if (ip_addr_pton(gateway, &gw) == -1) {
         errorf("ip_addr_pton() failure, addr=%s", gateway);
         return -1;
@@ -175,6 +180,7 @@ struct ip_iface *
 ip_route_get_iface(ip_addr_t dst)
 {
     struct ip_route *route;
+    
     route = ip_route_lookup(dst);
     if (!route) {
         return NULL;
@@ -221,8 +227,10 @@ ip_iface_register(struct net_device *dev, struct ip_iface *iface)
     }
 
     // ネットワーク宛の経路情報の登録
-    ip_route_add(iface->unicast & iface->netmask, iface->netmask, IP_ADDR_ANY, iface);
-
+    if (!ip_route_add(iface->unicast & iface->netmask, iface->netmask, IP_ADDR_ANY, iface)) {
+        errorf("ip_route_add() failure");
+        return -1;
+    }
     // ifacesの先頭にifaceを登録する
     iface->next = ifaces;
     ifaces = iface;
