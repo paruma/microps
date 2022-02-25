@@ -1,7 +1,7 @@
 #include <stdio.h>
+#include <stddef.h>
 #include <signal.h>
 #include <unistd.h>
-#include <stddef.h>
 
 #include "util.h"
 #include "net.h"
@@ -49,6 +49,7 @@ setup(void)
         errorf("net_run() failure");
         return -1;
     }
+    return 0;
 }
 
 static void
@@ -70,7 +71,6 @@ main(int argc, char *argv[])
     ip_addr_pton(LOOPBACK_IP_ADDR, &src);
     dst = src;
     while (!terminate) {
-        // 今回はtest_dataの後半部分(headerを除いた部分)を使う
         if (ip_output(1, test_data + offset, sizeof(test_data) - offset, src, dst) == -1) {
             errorf("ip_output() failure");
             break;

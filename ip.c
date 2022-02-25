@@ -181,7 +181,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     }
 
     //  (2) ヘッダ長
-    //  入力データの長さ（len）がヘッダ長より小さい場合はエラーメッセージを出力して中
+    //  入力データの長さ（len）がヘッダ長より小さい場合はエラーメッセージを出力して中断
     hlen = (hdr->vhl & 0x0f) << 2;
     if (len < hlen) {
         errorf("header length error: len=%zu < hlen=%u", len, hlen);
@@ -239,7 +239,6 @@ ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_add
             return -1;
         }
     }
-
     return net_device_output(NET_IFACE(iface)->dev, NET_PROTOCOL_TYPE_IP, data, len, hwaddr);
 }
 
@@ -251,24 +250,24 @@ ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, si
     struct ip_hdr *hdr;
     uint16_t hlen, total;
     char addr[IP_ADDR_STR_LEN];
-    hdr = (struct ip_hdr *)buf;
     // IPデータグラムの作成
     // IPヘッダの各フィールドに値を設定
+    hdr = (struct ip_hdr *)buf;
     hlen = IP_HDR_SIZE_MIN;
     total = hlen + len;
-    hdr->vhl = (IP_VERSION_IPV4 << 4) | hlen >> 2;
+    hdr->vhl = (IP_VERSION_IPV4 << 4) | (hlen >> 2);
     hdr->tos = 0;
     hdr->total = hton16(total);
     hdr->id = hton16(id);
-    hdr->offset = 0; //?
-    hdr->ttl = 255;
+    hdr->offset = hton16(offset);
+    hdr->ttl = 0xff;
     hdr->protocol = protocol;
     hdr->sum = 0;
     hdr->src = src;
     hdr->dst = dst;
     hdr->sum = cksum16((uint16_t *)hdr, hlen, 0);
     // IPヘッダの直後にデータを配置する
-    memcpy(buf + hlen, data, len);
+    memcpy(hdr + 1, data, len);
 
     debugf("dev=%s, dst=%s, protocol=%u, len=%u", NET_IFACE(iface)->dev->name, ip_addr_ntop(dst, addr, sizeof(addr)),
            protocol, total);
@@ -293,7 +292,9 @@ ssize_t
 ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
 {
     struct ip_iface *iface;
+    char addr[IP_ADDR_STR_LEN];
     uint16_t id;
+
     if (src == IP_ADDR_ANY) {
         errorf("ip routing does not implement");
         return -1;
@@ -301,17 +302,18 @@ ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_a
         // IPインターフェースの検索（送信元IPアドレス（src）に対応するIPインターフェースを検索
         iface = ip_iface_select(src);
         if (!iface) {
-            errorf("ip interface not found");
+            errorf("iface not found, src=%s", ip_addr_ntop(src, addr, sizeof(addr)));
             return -1;
         }
 
         // 宛先へ到達可能か確認
-        // dstがブロードキャストIPアドレス化、インターフェースのネットワークアドレスの範囲に含まれる場合は到達可能
+        // dstがブロードキャストIPアドレスか、インターフェースのネットワークアドレスの範囲に含まれる場合は到達可能
         bool is_reachable =
-            (dst == IP_ADDR_BROADCAST) && ((iface->unicast & iface->netmask) == (dst & iface->netmask));
+            (dst == IP_ADDR_BROADCAST) || ((iface->unicast & iface->netmask) == (dst & iface->netmask));
 
         if (!is_reachable) {
-            errorf("dst address is not reachable");
+            errorf("not reached, dst=%s", ip_addr_ntop(src, addr, sizeof(addr)));
+            return -1;
         }
     }
     if (NET_IFACE(iface)->dev->mtu < IP_HDR_SIZE_MIN + len) {
