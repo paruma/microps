@@ -174,7 +174,7 @@ ip_protocol_register(uint8_t type, void (*handler)(const uint8_t *data, size_t l
     struct ip_protocol *entry;
     for (entry = protocols; entry; entry = entry->next) {
         if (type == entry->type) {
-            errorf("already registered, type=0x%04x", type);
+            errorf("already registered, type=%u", type);
             return -1;
         }
     }
@@ -265,7 +265,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     u_int8_t *payload = (u_int8_t *)(hdr + 1);
     uint16_t payload_len = total - hlen;
     for (protocol = protocols; protocol; protocol = protocol->next) {
-        if (hdr->protocol == protocol->type) {
+        if (protocol->type == hdr->protocol) {
             protocol->handler(payload, payload_len, hdr->src, hdr->dst, iface);
             return;
         }
