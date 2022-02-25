@@ -83,12 +83,10 @@ arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint
     reply.hdr.hln = ETHER_ADDR_LEN;
     reply.hdr.pln = IP_ADDR_LEN;
     reply.hdr.op = hton16(ARP_OP_REPLY);
-
-    memcpy(&reply.sha, iface->dev->addr, ETHER_ADDR_LEN);
-    memcpy(&reply.spa, &((struct ip_iface *)iface)->unicast, IP_ADDR_LEN);
-    memcpy(&reply.tha, tha, ETHER_ADDR_LEN);
-    memcpy(&reply.tpa, &tpa, IP_ADDR_LEN);
-
+    memcpy(reply.sha, iface->dev->addr, ETHER_ADDR_LEN);
+    memcpy(reply.spa, &((struct ip_iface *)iface)->unicast, IP_ADDR_LEN);
+    memcpy(reply.tha, tha, ETHER_ADDR_LEN);
+    memcpy(reply.tpa, &tpa, IP_ADDR_LEN);
     debugf("dev=%s, len=%zu", iface->dev->name, sizeof(reply));
     arp_dump((uint8_t *)&reply, sizeof(reply));
     return net_device_output(iface->dev, ETHER_TYPE_ARP, (uint8_t *)&reply, sizeof(reply), dst);
@@ -126,7 +124,9 @@ arp_input(const uint8_t *data, size_t len, struct net_device *dev)
     memcpy(&tpa, msg->tpa, sizeof(tpa));
     iface = net_device_get_iface(dev, NET_IFACE_FAMILY_IP);
     if (iface && ((struct ip_iface *)iface)->unicast == tpa) {
-        arp_reply(iface, msg->sha, spa, msg->sha);
+        if (ntoh16(msg->hdr.op) == ARP_OP_REQUEST) {
+            arp_reply(iface, msg->sha, spa, msg->sha);
+        }
     }
 }
 
