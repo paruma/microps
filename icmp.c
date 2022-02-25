@@ -81,12 +81,11 @@ void
 icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface)
 {
     struct icmp_hdr *hdr;
-
     char addr1[IP_ADDR_STR_LEN];
     char addr2[IP_ADDR_STR_LEN];
     // 入力データの長さの確認
-    if (len < 8) {
-        errorf("header length error: len=%u", len);
+    if (len < sizeof(*hdr)) {
+        errorf("too short");
         return;
     }
 
