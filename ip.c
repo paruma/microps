@@ -104,14 +104,17 @@ ip_iface_alloc(const char *unicast, const char *netmask)
         return NULL;
     }
     NET_IFACE(iface)->family = NET_IFACE_FAMILY_IP;
-
-    if (ip_addr_pton(unicast, &(iface->unicast))) {
-        errorf("ip_addr_pton() failure");
+    if (ip_addr_pton(unicast, &iface->unicast) == -1) {
+        errorf("ip_addr_pton() failure, addr=%s", unicast);
+        memory_free(iface);
+        return NULL;
     }
-    if (ip_addr_pton(netmask, &(iface->netmask))) {
-        errorf("ip_addr_pton() failure");
+    if (ip_addr_pton(netmask, &iface->netmask) == -1) {
+        errorf("ip_addr_pton() failure, addr=%s", netmask);
+        memory_free(iface);
+        return NULL;
     }
-    iface->broadcast = (iface->unicast & iface->netmask) | (~iface->netmask);
+    iface->broadcast = (iface->unicast & iface->netmask) | ~iface->netmask;
     return iface;
 }
 
@@ -126,6 +129,7 @@ ip_iface_register(struct net_device *dev, struct ip_iface *iface)
     // デバイスdevにインターフェースifaceを登録する
     if (net_device_add_iface(dev, NET_IFACE(iface))) {
         errorf("net_device_add_iface() failure");
+        return -1;
     }
 
     // ifacesの先頭にifaceを登録する
@@ -210,7 +214,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     if (!iface) {
         return;
     }
-    if (hdr->dst != iface->unicast && hdr->dst != iface->broadcast && hdr->dst != 0xffffffff) {
+    if (hdr->dst != iface->unicast && hdr->dst != iface->broadcast && hdr->dst != IP_ADDR_BROADCAST) {
         // ほかホスト宛
         return;
     }

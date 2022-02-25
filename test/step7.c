@@ -44,7 +44,6 @@ main(int argc, char *argv[])
         errorf("ip_iface_register() failure");
         return -1;
     }
-
     if (net_run() == -1) {
         errorf("net_run() failure");
         return -1;
