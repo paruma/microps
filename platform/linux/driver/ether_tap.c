@@ -91,7 +91,6 @@ ether_tap_open(struct net_device *dev)
         close(tap->fd);
         return -1;
     }
-
     if (memcmp(dev->addr, ETHER_ADDR_ANY, ETHER_ADDR_LEN) == 0) {
         if (ether_tap_addr(dev) == -1) {
             errorf("ether_tap_addr() failure, dev=%s", dev->name);
@@ -105,8 +104,7 @@ ether_tap_open(struct net_device *dev)
 static int
 ether_tap_close(struct net_device *dev)
 {
-    close(PRIV(dev)->fd);
-    return 0;
+    return close(PRIV(dev)->fd);
 }
 
 static ssize_t
