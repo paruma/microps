@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <signal.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "util.h"
@@ -81,7 +83,6 @@ main(int argc, char *argv[])
         }
         sleep(1);
     }
-
     cleanup();
     return 0;
 }
