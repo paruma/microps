@@ -28,12 +28,13 @@ static void
 udp_dump(const uint8_t *data, size_t len)
 {
     struct udp_hdr *hdr;
+
     flockfile(stderr);
     hdr = (struct udp_hdr *)data;
-    fprintf(stderr, " src: %u\n", ntoh16(hdr->src));
-    fprintf(stderr, " dst: %u\n", ntoh16(hdr->dst));
-    fprintf(stderr, " len: %u\n", ntoh16(hdr->len));
-    fprintf(stderr, " sum: 0x%04x\n", ntoh16(hdr->sum));
+    fprintf(stderr, "        src: %u\n", ntoh16(hdr->src));
+    fprintf(stderr, "        dst: %u\n", ntoh16(hdr->dst));
+    fprintf(stderr, "        len: %u\n", ntoh16(hdr->len));
+    fprintf(stderr, "        sum: 0x%04x\n", ntoh16(hdr->sum));
 #ifdef HEXDUMP
     hexdump(stderr, data, len);
 #endif
@@ -95,8 +96,6 @@ udp_output(struct ip_endpoint *src, struct ip_endpoint *dst, const uint8_t *data
     hdr->len = hton16(total);
     hdr->sum = 0;
     memcpy(hdr + 1, data, len);
-    debugf("(%d, %d)", sizeof(*hdr), len);
-
     pseudo.src = src->addr;
     pseudo.dst = dst->addr;
     pseudo.zero = 0;
@@ -109,9 +108,10 @@ udp_output(struct ip_endpoint *src, struct ip_endpoint *dst, const uint8_t *data
            ip_endpoint_ntop(dst, ep2, sizeof(ep2)), total, len);
     udp_dump((uint8_t *)hdr, total);
 
-    // IPの送信関数を呼ぶ
-    ip_output(IP_PROTOCOL_UDP, buf, total, src->addr, dst->addr);
-
+    if (ip_output(IP_PROTOCOL_UDP, (uint8_t *)hdr, total, src->addr, dst->addr) == -1) {
+        errorf("ip_output() failure");
+        return -1;
+    }
     return len;
 }
 
