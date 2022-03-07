@@ -97,6 +97,10 @@ udp_pcb_release(struct udp_pcb *pcb)
         return;
     }
 
+    if (pcb->wc) {
+        pcb->state = UDP_PCB_STATE_CLOSING;
+        return;
+    }
     pcb->state = UDP_PCB_STATE_FREE;
     pcb->local.addr = IP_ADDR_ANY;
     pcb->local.port = 0;
