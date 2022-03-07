@@ -262,6 +262,7 @@ static void
 event_handler(void *arg)
 {
     struct udp_pcb *pcb;
+
     (void)arg;
     mutex_lock(&mutex);
     for (pcb = pcbs; pcb < tailof(pcbs); pcb++) {

@@ -283,6 +283,7 @@ int
 net_event_subscribe(void (*handler)(void *arg), void *arg)
 {
     struct net_event *event;
+
     event = memory_alloc(sizeof(*event));
     if (!event) {
         errorf("memory_alloc() failure");
@@ -299,6 +300,7 @@ int
 net_event_handler(void)
 {
     struct net_event *event;
+
     for (event = events; event; event = event->next) {
         event->handler(event->arg);
     }
