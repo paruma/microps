@@ -432,7 +432,6 @@ tcp_segment_arrives(struct tcp_segment_info *seg, uint8_t flags, uint8_t *data, 
                 acceptable = 1;
             }
         }
-
         /*
          * 2nd check the RST bit
          */
@@ -444,7 +443,6 @@ tcp_segment_arrives(struct tcp_segment_info *seg, uint8_t flags, uint8_t *data, 
         /*
          * 4th check the SYN bit
          */
-
         if (TCP_FLG_ISSET(flags, TCP_FLG_SYN)) {
             pcb->rcv.nxt = seg->seq + 1;
             pcb->irs = seg->seq;
