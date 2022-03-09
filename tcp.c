@@ -659,10 +659,14 @@ event_handler(void *arg)
 int
 tcp_init(void)
 {
-    struct timeval interval = {0, 100000};
+    struct timeval interval = {0, 100000}; /* 100ms */
 
     if (ip_protocol_register(IP_PROTOCOL_TCP, tcp_input) == -1) {
         errorf("ip_protocol_register() failure");
+        return -1;
+    }
+    if (net_timer_register(interval, tcp_timer) == -1) {
+        errorf("net_timer_register() failure");
         return -1;
     }
     net_event_subscribe(event_handler, NULL);
