@@ -80,6 +80,7 @@ tcp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct 
     uint16_t psum;
     char addr1[IP_ADDR_STR_LEN];
     char addr2[IP_ADDR_STR_LEN];
+
     if (len < sizeof(*hdr)) {
         errorf("too short");
         return;
