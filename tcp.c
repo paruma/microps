@@ -377,7 +377,6 @@ tcp_segment_arrives(struct tcp_segment_info *seg, uint8_t flags, uint8_t *data, 
     /*
      * 5th check the ACK field
      */
-
     if (!TCP_FLG_ISSET(flags, TCP_FLG_ACK)) {
         /* drop segment */
         return;
@@ -393,19 +392,19 @@ tcp_segment_arrives(struct tcp_segment_info *seg, uint8_t flags, uint8_t *data, 
         }
         break;
     }
-        /*
-         * 6th, check the URG bit (ignore)
-         */
+    /*
+     * 6th, check the URG bit (ignore)
+     */
 
-        /*
-         * 7th, process the segment text
-         */
+    /*
+     * 7th, process the segment text
+     */
 
-        /*
-         * 8th, check the FIN bit
-         */
+    /*
+     * 8th, check the FIN bit
+     */
 
-        return;
+    return;
 }
 
 static void
