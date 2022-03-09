@@ -151,6 +151,7 @@ tcp_pcb_release(struct tcp_pcb *pcb)
 {
     char ep1[IP_ENDPOINT_STR_LEN];
     char ep2[IP_ENDPOINT_STR_LEN];
+
     if (sched_ctx_destroy(&pcb->ctx) == -1) {
         sched_wakeup(&pcb->ctx);
         return;
@@ -164,6 +165,7 @@ static struct tcp_pcb *
 tcp_pcb_select(struct ip_endpoint *local, struct ip_endpoint *foreign)
 {
     struct tcp_pcb *pcb, *listen_pcb = NULL;
+
     for (pcb = pcbs; pcb < tailof(pcbs); pcb++) {
         if ((pcb->local.addr == IP_ADDR_ANY || pcb->local.addr == local->addr) && pcb->local.port == local->port) {
             if (!foreign) {
@@ -187,6 +189,7 @@ static struct tcp_pcb *
 tcp_pcb_get(int id)
 {
     struct tcp_pcb *pcb;
+
     if (id < 0 || id >= (int)countof(pcbs)) {
         /* out of range */
         return NULL;
@@ -220,11 +223,11 @@ tcp_output_segment(uint32_t seq, uint32_t ack, uint8_t flg, uint16_t wnd, uint8_
     // TCPセグメントの作成
     hdr->src = local->port;
     hdr->dst = foreign->port;
-    hdr->seq = seq;
-    hdr->ack = ack;
+    hdr->seq = hton32(seq);
+    hdr->ack = hton32(ack);
     hdr->off = (sizeof(*hdr) >> 2) << 4;
     hdr->flg = flg;
-    hdr->wnd = wnd;
+    hdr->wnd = hton16(wnd);
     hdr->sum = 0;
     hdr->up = 0;
     memcpy(hdr + 1, data, len);
@@ -253,6 +256,7 @@ static ssize_t
 tcp_output(struct tcp_pcb *pcb, uint8_t flg, uint8_t *data, size_t len)
 {
     uint32_t seq;
+
     seq = pcb->snd.nxt;
     if (TCP_FLG_ISSET(flg, TCP_FLG_SYN)) {
         seq = pcb->iss;
@@ -327,7 +331,7 @@ tcp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct 
     debugf("%s:%d => %s:%d, len=%zu (payload=%zu)", ip_addr_ntop(src, addr1, sizeof(addr1)), ntoh16(hdr->src),
            ip_addr_ntop(dst, addr2, sizeof(addr2)), ntoh16(hdr->dst), len, len - sizeof(*hdr));
     tcp_dump(data, len);
-    
+
     local.addr = dst;
     local.port = hdr->dst;
     foreign.addr = src;
@@ -347,7 +351,6 @@ tcp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct 
     mutex_lock(&mutex);
     tcp_segment_arrives(&seg, hdr->flg, (uint8_t *)hdr + hlen, len - hlen, &local, &foreign);
     mutex_unlock(&mutex);
-
     return;
 }
 
