@@ -115,7 +115,6 @@ main(int argc, char *argv[])
     uint8_t buf[2048];
     ssize_t ret;
 
-    signal(SIGINT, on_signal);
     if (setup() == -1) {
         errorf("setup() failure");
         return -1;
@@ -131,6 +130,7 @@ main(int argc, char *argv[])
         if (ret <= 0) {
             break;
         }
+        debugf("%zd bytes data received", ret);
         hexdump(stderr, buf, ret);
         tcp_send(soc, buf, ret);
     }

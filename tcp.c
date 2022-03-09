@@ -468,7 +468,6 @@ tcp_segment_arrives(struct tcp_segment_info *seg, uint8_t flags, uint8_t *data, 
         }
         break;
     }
-
     /*
      * 8th, check the FIN bit
      */
@@ -700,7 +699,6 @@ RETRY:
         mutex_unlock(&mutex);
         return -1;
     }
-
     mutex_unlock(&mutex);
     return sent;
 }
