@@ -8,9 +8,9 @@
 #define IFNAMSIZ 16
 #endif
 
-#define NET_DEVICE_TYPE_DUMMY     0x0000
-#define NET_DEVICE_TYPE_LOOPBACK  0x0001
-#define NET_DEVICE_TYPE_ETHERNET  0x0002
+#define NET_DEVICE_TYPE_DUMMY    0x0000
+#define NET_DEVICE_TYPE_LOOPBACK 0x0001
+#define NET_DEVICE_TYPE_ETHERNET 0x0002
 
 #define NET_DEVICE_FLAG_UP        0x0001
 #define NET_DEVICE_FLAG_LOOPBACK  0x0010
@@ -20,18 +20,22 @@
 
 #define NET_DEVICE_ADDR_LEN 16
 
+// x: struct net_device
 #define NET_DEVICE_IS_UP(x) ((x)->flags & NET_DEVICE_FLAG_UP)
 #define NET_DEVICE_STATE(x) (NET_DEVICE_IS_UP(x) ? "up" : "down")
 
 struct net_device {
+    /* linked list としてのメンバ*/
     struct net_device *next;
+
+    /* デバイスとしてのメンバ */
     unsigned int index;
     char name[IFNAMSIZ];
-    uint16_t type;
-    uint16_t mtu;
-    uint16_t flags;
-    uint16_t hlen; /* header length */
-    uint16_t alen; /* address length */
+    uint16_t type;  /* NET_DEVICE_TYPE_(DUMMY|LOOPBACK|ETHERNET) */
+    uint16_t mtu;   /* MTUはデバイスの値*/
+    uint16_t flags; /* NET_DEVICE_FLAG_(UP|LOOPBACK|BROADCAST|P2P|NEED_ARP) */
+    uint16_t hlen;  /* header length */
+    uint16_t alen;  /* address length */
     uint8_t addr[NET_DEVICE_ADDR_LEN];
     union {
         uint8_t peer[NET_DEVICE_ADDR_LEN];
