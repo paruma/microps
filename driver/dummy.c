@@ -18,12 +18,16 @@ dummy_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, size_
     debugdump(data, len);
     /* drop data */
     // デバイスには信頼性の有無を問わない。つまり全部dropしててもデバイス。
+
+    intr_raise_irq(DUMMY_IRQ);
     return 0;
 }
 
 static int
 dummy_isr(unsigned int irq, void *id)
 {
+    debugf("irq=%u, dev=%s", irq, ((struct net_device *)id)->name);
+    return 0;
 }
 
 static struct net_device_ops dummy_ops = {
@@ -48,6 +52,8 @@ dummy_init(void)
         errorf("net_device_register() failure");
         return NULL;
     }
+    // ダミーハンドラとして、dummy_isrを登録する
+    intr_request_irq(DUMMY_IRQ, dummy_isr, INTR_IRQ_SHARED, dev->name, dev);
     debugf("initialized, dev=%s", dev->name);
     return dev;
 }
