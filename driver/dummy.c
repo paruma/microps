@@ -23,6 +23,7 @@ dummy_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, size_
     return 0;
 }
 
+// isr: interrupt service routine
 static int
 dummy_isr(unsigned int irq, void *id)
 {
