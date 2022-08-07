@@ -111,7 +111,6 @@ net_run(void)
         errorf("intr_run() failure");
         return -1;
     }
-
     debugf("open all devices...");
     for (dev = devices; dev; dev = dev->next) {
         net_device_open(dev);
