@@ -59,6 +59,8 @@ intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *dev), 
     irqs = entry; // リストの先頭に貼り付ける
     sigaddset(&sigmask, irq);
     debugf("registered: irq=%u, name=%s", irq, name);
+
+    return 0;
 }
 
 int
