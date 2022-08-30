@@ -153,6 +153,8 @@ net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_dev
             // (3)キューに新しいエントリを挿入（失敗したらエラーを返す）
             if (!queue_push(&protocols->queue, entry)) {
                 errorf("queue_push() failure");
+                memory_free(entry);
+                return -1;
             }
 
             debugf("queue pushed (num:%u), dev=%s, type=0x%04x, len=%zu", proto->queue.num, dev->name, type, len);
@@ -165,6 +167,11 @@ net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_dev
 }
 
 // デバイスを登録したあとに呼ぶ。
+int
+net_softirq_handler(void)
+{
+}
+
 int
 net_run(void)
 {
@@ -194,6 +201,8 @@ net_shutdown(void)
     intr_shutdown();
     debugf("shutting down");
 }
+
+#include "ip.h"
 
 int
 net_init(void)
