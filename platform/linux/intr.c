@@ -88,8 +88,11 @@ intr_thread(void *arg)
         case SIGHUP:
             terminate = 1;
             break;
+        case SIGUSR1:// ソフトウェア割り込み
+            net_softirq_handler();
+            break;
         default:
-            // 割り込み番号がsigの割り込みリクエストのハンドラを実行する
+            // 割り込み番号がsigの割り込みリクエストのハンドラを実行する（デバイスで使う）
             for (entry = irqs; entry; entry = entry->next) {
                 if (entry->irq == (unsigned int)sig) {
                     debugf("irq=%d, name=%s", entry->irq, entry->name);
@@ -142,5 +145,6 @@ intr_init(void)
     pthread_barrier_init(&barrier, NULL, 2);
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGHUP);
+    sigaddset(&sigmask, SIGUSR1);
     return 0;
 }
