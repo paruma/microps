@@ -21,7 +21,7 @@ struct ip_hdr {
     uint8_t options[];
 };
 
-const ip_addr_t IP_ADDR_ANY       = 0x00000000; /* 0.0.0.0 */
+const ip_addr_t IP_ADDR_ANY = 0x00000000;       /* 0.0.0.0 */
 const ip_addr_t IP_ADDR_BROADCAST = 0xffffffff; /* 255.255.255.255 */
 
 int
@@ -62,11 +62,80 @@ ip_addr_ntop(ip_addr_t n, char *p, size_t size)
 static void
 ip_dump(const uint8_t *data, size_t len)
 {
+    struct ip_hdr *hdr;
+    uint8_t v, hl, hlen;
+    uint16_t total, offset;
+    char addr[IP_ADDR_STR_LEN];
+    flockfile(stderr);
+    hdr = (struct ip_hdr *)data;
+    v = (hdr->vhl & 0xf0) >> 4;
+    hl = hdr->vhl & 0x0f;
+    hlen = hl << 2;
+    fprintf(stderr, "      vhl: 0x%02x [v: %u, hl: %u (%u)]\n", hdr->vhl, v, hl, hlen);
+    fprintf(stderr, "      tos: 0x%02x\n", hdr->tos);
+    total = ntoh16(hdr->total);
+    fprintf(stderr, "    total: %u (payload: %u)\n", total, total - hlen);
+    fprintf(stderr, "       id: %u\n", ntoh16(hdr->id));
+    offset = ntoh16(hdr->offset);
+    fprintf(stderr, "   offset: 0x%04x [flags=%x, offset=%u]\n", offset, (offset & 0xe000) >> 13, offset & 0x1fff);
+    fprintf(stderr, "      ttl: %u\n", hdr->ttl);
+    fprintf(stderr, " protocol: %u\n", hdr->protocol);
+    fprintf(stderr, "      sum: 0x%04x\n", ntoh16(hdr->sum));
+    fprintf(stderr, "      src: %s\n", ip_addr_ntop(hdr->src, addr, sizeof(addr)));
+    fprintf(stderr, "      dst: %s\n", ip_addr_ntop(hdr->dst, addr, sizeof(addr)));
+#ifdef HEXDUMP
+    hexdump(stderr, data, len);
+#endif
+    funlockfile(stderr);
 }
 
 static void
 ip_input(const uint8_t *data, size_t len, struct net_device *dev)
 {
+    struct ip_hdr *hdr;
+    uint8_t v, hl;
+    uint16_t hlen, total, offset;
+    if (len < IP_HDR_SIZE_MIN) {
+        errorf("too short");
+        return;
+    }
+    hdr = (struct ip_hdr *)data;
+    //  (1) バージョン
+    //  IP_VERSION_IPV4 と一致しない場合はエラーメッセージを出力して中断
+    v = (hdr->vhl & 0xf0) >> 4;
+    if (v != IP_VERSION_IPV4) {
+        errorf("version error");
+    }
+
+    //  (2) ヘッダ長
+    //  入力データの長さ（len）がヘッダ長より小さい場合はエラーメッセージを出力して中断
+    hl = hdr->vhl & 0x0f;
+    hlen = hl << 2;
+    if (len < hlen) {
+        errorf("too short");
+    }
+
+    //  (3) トータル長
+    //  入力データの長さ（len）がトータル長より小さい場合はエラーメッセージを出力して中断
+    // 普通は len == total なはず？
+    if (len < total) {
+        errorf("too short");
+    }
+
+    //  (4) チェックサム
+    //  cksum16() での検証に失敗した場合はエラーメッセージを出力して中断
+    //  戻り値が0x0000なら検証成功
+    if (cksum16((uint16_t *)data, len, 0)) {
+        errorf("check sum error");
+    }
+
+    offset = ntoh16(hdr->offset);
+    if (offset & 0x2000 || offset & 0x1fff) {
+        errorf("fragments does not support");
+        return;
+    }
+    debugf("dev=%s, protocol=%u, total=%u", dev->name, hdr->protocol, total);
+    ip_dump(data, total);
 }
 
 int
