@@ -240,7 +240,7 @@ ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_add
         }
     }
 
-    return net_device_output(NET_IFACE(iface)->dev, NET_PROTOCOL_TYPE_IP, data, len, dst);
+    return net_device_output(NET_IFACE(iface)->dev, NET_PROTOCOL_TYPE_IP, data, len, hwaddr);
 }
 
 static ssize_t
@@ -267,7 +267,6 @@ ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, si
     hdr->src = src;
     hdr->dst = dst;
     hdr->sum = cksum16((uint16_t *)hdr, hlen, 0);
-    fprintf(stderr, "hlen=%u, len=%u, total=%u\n", hlen, len, total);
     // IPヘッダの直後にデータを配置する
     memcpy(buf + hlen, data, len);
 
@@ -294,7 +293,6 @@ ssize_t
 ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
 {
     struct ip_iface *iface;
-    char addr[IP_ADDR_STR_LEN];
     uint16_t id;
     if (src == IP_ADDR_ANY) {
         errorf("ip routing does not implement");
@@ -309,7 +307,8 @@ ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_a
 
         // 宛先へ到達可能か確認
         // dstがブロードキャストIPアドレス化、インターフェースのネットワークアドレスの範囲に含まれる場合は到達可能
-        bool is_reachable = (dst == IP_ADDR_BROADCAST) && (iface->unicast & iface->netmask == dst & iface->netmask);
+        bool is_reachable =
+            (dst == IP_ADDR_BROADCAST) && ((iface->unicast & iface->netmask) == (dst & iface->netmask));
 
         if (!is_reachable) {
             errorf("dst address is not reachable");
