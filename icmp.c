@@ -102,13 +102,48 @@ icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct
 
     debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)), ip_addr_ntop(dst, addr2, sizeof(addr2)), len);
     icmp_dump(data, len);
+
+    switch (hdr->type) {
+    case ICMP_TYPE_ECHO:
+        /* Responds with the address of the received interface. */
+        icmp_output(ICMP_TYPE_ECHOREPLY, hdr->code, hdr->values, (uint8_t *)(hdr + 1), len - ICMP_HDR_SIZE,
+                    iface->unicast, src);
+        break;
+    default:
+        /* ignore */
+        break;
+    }
 }
 
 int
 icmp_output(uint8_t type, uint8_t code, uint32_t values, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
 {
-}
+    uint8_t buf[ICMP_BUFSIZ];
+    struct icmp_hdr *hdr;
+    size_t msg_len; // ヘッダ+データの長さ
+    char addr1[IP_ADDR_STR_LEN];
+    char addr2[IP_ADDR_STR_LEN];
+    hdr = (struct icmp_hdr *)buf;
 
+    // hdrの各フィールドに値を設定
+    hdr->type = type;
+    hdr->code = code;
+    hdr->sum = 0;
+    hdr->values = values;
+
+    // hdrの直後にデータを配置（コピー）
+    memcpy(hdr + 1, data, len);
+    // ICMPメッセージ全体の長さを計算して msg_len に格納する
+    msg_len = ICMP_HDR_SIZE + len;
+    // チェックサムを計算してチェックサムフィールドに格納
+    hdr->sum = cksum16((uint16_t *)buf, msg_len, 0);
+
+    debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)), ip_addr_ntop(dst, addr2, sizeof(addr2)),
+           msg_len);
+    icmp_dump((uint8_t *)hdr, msg_len);
+
+    return ip_output(IP_PROTOCOL_ICMP, buf, msg_len, src, dst);
+}
 int
 icmp_init(void)
 {
