@@ -185,7 +185,7 @@ net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_dev
             memcpy(entry->data, data, len);
 
             // (3)キューに新しいエントリを挿入（失敗したらエラーを返す）
-            if (!queue_push(&protocols->queue, entry)) {
+            if (!queue_push(&proto->queue, entry)) {
                 errorf("queue_push() failure");
                 memory_free(entry);
                 return -1;
@@ -254,6 +254,7 @@ net_shutdown(void)
 }
 
 #include "ip.h"
+#include "arp.h"
 #include "icmp.h"
 
 int
@@ -265,6 +266,10 @@ net_init(void)
     }
     if (ip_init() == -1) {
         errorf("ip_init() failure");
+        return -1;
+    }
+    if (arp_init() == -1) {
+        errorf("arp_init() failure");
         return -1;
     }
     if (icmp_init() == -1) {
