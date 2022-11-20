@@ -75,16 +75,35 @@ intr_raise_irq(unsigned int irq)
 static int
 intr_timer_setup(struct itimerspec *interval)
 {
+    timer_t id;
+    if (timer_create(CLOCK_REALTIME, NULL, &id) == -1) {
+        errorf("timer_create: %s", strerror(errno));
+        return -1;
+    }
+    if (timer_settime(id, 0, interval, NULL) == -1) {
+        errorf("timer_settime: %s", strerror(errno));
+        return -1;
+    }
+    return 0;
 }
 
 // 割り込みスレッドのエントリポイント （SIGHUPのシグナルが来るまで無限ループ）
 static void *
 intr_thread(void *arg)
 {
+    const struct timespec ts = {0, 1000000}; /* 1ms */
+    struct itimerspec interval = {ts, ts};
+
     int terminate = 0, sig, err;
     struct irq_entry *entry;
     debugf("start...");
     pthread_barrier_wait(&barrier); // メインスレッドと同期を取るための処理
+
+    if (intr_timer_setup(&interval) == -1) {
+        errorf("intr_timer_setup() failure");
+        return NULL;
+    }
+
     while (!terminate) {
         err = sigwait(&sigmask, &sig); // シグナル番号を取得(このシグナル番号を割り込み番号として扱う)
         if (err) {
@@ -94,6 +113,9 @@ intr_thread(void *arg)
         switch (sig) {
         case SIGHUP:
             terminate = 1;
+            break;
+        case SIGALRM:
+            net_timer_handler();
             break;
         case SIGUSR1: // ソフトウェア割り込み
             net_softirq_handler();
@@ -153,5 +175,6 @@ intr_init(void)
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGHUP);
     sigaddset(&sigmask, SIGUSR1);
+    sigaddset(&sigmask, SIGALRM);
     return 0;
 }
