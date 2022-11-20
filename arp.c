@@ -191,6 +191,21 @@ arp_cache_insert(ip_addr_t pa, const uint8_t *ha)
 static int
 arp_request(struct net_iface *iface, ip_addr_t tpa)
 {
+    struct arp_ether_ip request;
+    // APR要求のメッセージの生成
+    request.hdr.hrd = hton16(ARP_HRD_ETHER);
+    request.hdr.pro = hton16(ARP_PRO_IP);
+    request.hdr.hln = ETHER_ADDR_LEN;
+    request.hdr.pln = IP_ADDR_LEN;
+    request.hdr.op = hton16(ARP_OP_REQUEST);
+    memcpy(request.sha, iface->dev->addr, sizeof(request.sha));
+    memcpy(request.spa, &((struct ip_iface *)iface)->unicast, sizeof(request.spa));
+    // request.tha は未設定
+    memcpy(request.tpa, &tpa, sizeof(request.tpa));
+
+    debugf("dev=%s, len=%zu", iface->dev->name, sizeof(request));
+    arp_dump((uint8_t *)&request, sizeof(request));
+    return net_device_output(iface->dev, ETHER_TYPE_ARP, (uint8_t *)&request, sizeof(request), iface->dev->broadcast);
 }
 
 static int
@@ -287,8 +302,23 @@ arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
     cache = arp_cache_select(pa);
     if (!cache) {
         debugf("cache not found, pa=%s", ip_addr_ntop(pa, addr1, sizeof(addr1)));
+        cache = arp_cache_alloc();
+        if (!cache) {
+            return ARP_RESOLVE_ERROR;
+        }
+        cache->state = ARP_RESOLVE_INCOMPLETE;
+        cache->pa = pa;
+        // cache->ha は未設定
+        gettimeofday(&cache->timestamp, NULL);
+
         mutex_unlock(&mutex);
-        return ARP_RESOLVE_ERROR;
+        arp_request(iface, pa);
+        return ARP_RESOLVE_INCOMPLETE;
+    }
+    if (cache->state == ARP_CACHE_STATE_INCOMPLETE) {
+        mutex_unlock(&mutex);
+        arp_request(iface, pa); /* just in case packet loss */
+        return ARP_RESOLVE_INCOMPLETE;
     }
     memcpy(ha, cache->ha, ETHER_ADDR_LEN);
     mutex_unlock(&mutex);
