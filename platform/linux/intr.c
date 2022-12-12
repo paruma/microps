@@ -118,6 +118,9 @@ intr_thread(void *arg)
         case SIGUSR1: // ソフトウェア割り込み
             net_softirq_handler();
             break;
+        case SIGUSR2:
+            net_event_handler();
+            break;
         default:
             // 割り込み番号がsigの割り込みリクエストのハンドラを実行する（デバイスで使う）
             for (entry = irqs; entry; entry = entry->next) {
@@ -173,6 +176,7 @@ intr_init(void)
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGHUP);
     sigaddset(&sigmask, SIGUSR1);
+    sigaddset(&sigmask, SIGUSR2);
     sigaddset(&sigmask, SIGALRM);
     return 0;
 }
